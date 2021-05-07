@@ -100,6 +100,58 @@ module.exports = (sequelize, DataTypes) => {
             };
             return jwt.encode(playload, jwtSecret);
         }
+
+        static async list(data) {
+            const { page, size, isPagination, username, status } = data;
+            const pageNumber = Number(page);
+            const pageSize = Number(size);
+
+            const offset = (pageNumber - 1) * pageSize;
+            const limit = pageSize;
+
+            const condition = {}
+
+            if(username) {
+                condition.username = { [Op.like]: `%${username}`};
+            }
+            if(status) {
+                condition.status = status
+            }
+
+            // option: order, pagination
+            const options = {};
+            options.order = [['username', 'ASC'], ['status', 'ASC']];
+
+            if(isPagination) {
+                options.offset = offset;
+                options.limit = limit;
+            }
+
+            const attributes = [
+                'username',
+                'fullname',
+                'status',
+                'deleted',
+                'createdAt',
+                'updatedAt',
+            ]
+
+            const { rows: records, count: totalRecords } = await this.findAndCountAll({
+                attributes,
+                where: condition,
+                limit,
+                offset
+            });
+
+            return {
+                page: pageNumber,
+                size: pageSize,
+                records,
+                totalRecords,
+                totalPages: Math.ceil(totalRecords / pageSize),
+            }
+        }
+
     }
     User.init({
         email: {

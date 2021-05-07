@@ -11,6 +11,9 @@ const {
 
 const router = express.Router();
 
+router.route('/profile')
+    .get(controller.getUser)
+
 router.route('/')
     /**
      * @api {post} v1/users Create User
@@ -36,7 +39,7 @@ router.route('/')
      * @apiError (Forbidden 403)     Forbidden        Only admins can create the data
      */
     .post(validate(createUser), controller.create)
-    .get(controller.getUser)
+    .get(controller.getList)
 
 
 module.exports = router;

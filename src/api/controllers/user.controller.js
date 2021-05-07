@@ -26,7 +26,15 @@ exports.getUser = async (req, res, next) => {
         });
         res.json(user);
     } catch (error) {
-        console.log(error)
         next(error)
     }
 };
+
+exports.getList = async (req, res, next) => {
+    try {
+        const data = await User.list(req.query)
+        res.json(data)
+    } catch(e) {
+        next(e)
+    }
+}
