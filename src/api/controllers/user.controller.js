@@ -42,7 +42,7 @@ exports.getList = async (req, res, next) => {
 exports.updateUser = async (req, res, next) => {
     try {
         const {userId, username, fullname, deleted, status} = req.body
-        const user = await User.get(userId);
+        const user = await User.getUserById(userId);
         if(username) {
             user.username = username
         }

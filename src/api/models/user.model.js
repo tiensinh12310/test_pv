@@ -23,7 +23,7 @@ module.exports = (sequelize, DataTypes) => {
             User.hasOne(models.RefreshToken);
         }
 
-        static async get(userId) {
+        static async getUserById(userId) {
             const user = await this.findOne({
                 where: {
                     id: userId,
@@ -32,7 +32,7 @@ module.exports = (sequelize, DataTypes) => {
 
             if (!user) {
                 throw new APIError({
-                    status: httpStatus.NO_CONTENT,
+                    status: httpStatus.BAD_REQUEST,
                     message: 'Not found user',
                 });
             }
