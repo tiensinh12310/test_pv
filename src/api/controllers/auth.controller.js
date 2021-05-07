@@ -1,18 +1,16 @@
 const httpStatus = require('http-status');
-const User = require('../models/user.model');
-const RefreshToken = require('../models/refreshToken.model');
+const { User, RefreshToken } = require('../../config/mysql');
 const moment = require('moment-timezone');
 const { jwtExpirationInterval } = require('../../config/vars');
-const { omit } = require('lodash');
 const APIError = require('../utils/APIError');
 
 /**
  * Returns a formatted object with tokens
  * @private
  */
-function generateTokenResponse(user, accessToken) {
+async function generateTokenResponse(user, accessToken) {
     const tokenType = 'Bearer';
-    const refreshToken = RefreshToken.generate(user).token;
+    const refreshToken = await RefreshToken.generate(user).token;
     const expiresIn = moment().add(jwtExpirationInterval, 'minutes');
     return {
         tokenType,
@@ -28,14 +26,13 @@ function generateTokenResponse(user, accessToken) {
  */
 exports.register = async (req, res, next) => {
     try {
-        const userData = omit(req.body, 'role');
-        const user = await new User(userData).save();
-        const userTransformed = user.transform();
-        const token = generateTokenResponse(user, user.token());
+        const savedUser = await User.createUser(req.body);
+        const userTransformed = savedUser.transform();
+        const token = await generateTokenResponse(savedUser, savedUser.token());
         res.status(httpStatus.CREATED);
         return res.json({ token, user: userTransformed });
     } catch (error) {
-        return next(User.checkDuplicateUsername(error));
+        next(User.checkDuplicateEmail(error))
     }
 };
 
@@ -46,9 +43,8 @@ exports.register = async (req, res, next) => {
 exports.login = async (req, res, next) => {
     try {
         const { user, accessToken } = await User.findAndGenerateToken(req.body);
-        const token = generateTokenResponse(user, accessToken);
-        const userTransformed = user.transform();
-        return res.json({ token, user: userTransformed });
+        const token = await generateTokenResponse(user, accessToken);
+        return res.json({ token, user });
     } catch (error) {
         return next(error);
     }
@@ -77,12 +73,13 @@ exports.oAuth = async (req, res, next) => {
  */
 exports.refresh = async (req, res, next) => {
     try {
-        const { username, refreshToken } = req.body;
-        const refreshObject = await RefreshToken.findOneAndRemove({
-            username,
-            token: refreshToken,
+        const { email, refresh_token } = req.body;
+        const refreshObject = await RefreshToken.findOne({
+            email,
+            token: refresh_token,
         });
-        const { user, accessToken } = await User.findAndGenerateToken({ username, refreshObject });
+        await refreshObject.destroy()
+        const { user, accessToken } = await User.findAndGenerateToken({ email, refreshObject });
         const response = generateTokenResponse(user, accessToken);
         return res.json(response);
     } catch (error) {

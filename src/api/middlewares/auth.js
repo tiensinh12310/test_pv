@@ -1,13 +1,13 @@
 const httpStatus = require('http-status');
 const passport = require('passport');
-const User = require('../models/user.model');
+const { User } = require('../../config/mysql');
 const APIError = require('../utils/APIError');
 
-const ADMIN = 'admin';
-const LOGGED_USER = '_loggedUser';
+const OPEN = 1;
 
-const handleJWT = (req, res, next, roles) => async (err, user, info) => {
+const handleJWT = (req, res, next, status) => async (err, user, info) => {
     const error = err || info;
+    console.log(err, '=========', req)
     const logIn = Promise.promisify(req.logIn);
     const apiError = new APIError({
         message: error ? error.message : 'Unauthorized',
@@ -22,13 +22,13 @@ const handleJWT = (req, res, next, roles) => async (err, user, info) => {
         return next(apiError);
     }
 
-    if (roles === LOGGED_USER) {
-        if (user.role !== 'admin' && req.params.userId !== user._id.toString()) {
+    if (status === OPEN) {
+        if (user.status !== OPEN && req.params.userId !== user.id.toString()) {
             apiError.status = httpStatus.FORBIDDEN;
             apiError.message = 'Forbidden';
             return next(apiError);
         }
-    } else if (!roles.includes(user.role)) {
+    } else if (!status.includes(user.status)) {
         apiError.status = httpStatus.FORBIDDEN;
         apiError.message = 'Forbidden';
         return next(apiError);
@@ -41,13 +41,12 @@ const handleJWT = (req, res, next, roles) => async (err, user, info) => {
     return next();
 };
 
-exports.ADMIN = ADMIN;
-exports.LOGGED_USER = LOGGED_USER;
+exports.OPEN = OPEN;
 
-exports.authorize = (roles = User.roles) => (req, res, next) =>
+exports.authorize = (status = User.status) => (req, res, next) =>
     passport.authenticate(
         'jwt', { session: false },
-        handleJWT(req, res, next, roles),
+        handleJWT(req, res, next, status),
     )(req, res, next);
 
 exports.oAuth = service =>

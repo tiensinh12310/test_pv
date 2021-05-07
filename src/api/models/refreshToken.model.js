@@ -21,13 +21,13 @@ module.exports = (sequelize, DataTypes) => {
         }
 
         static async generate(user) {
-            const {id: userId, username} = user;
+            const {id: userId, email} = user;
             // destroy all old refresh token
             await RefreshToken.destroy({where: {userId}});
             const token = `${userId}.${crypto.randomBytes(40).toString('hex')}`;
             const expires = moment().add(30, 'days').toDate();
             const tokenObject = await RefreshToken.create({
-                token, userId, username, expires,
+                token, userId, expires, email
             });
             return tokenObject.toJSON();
         }
@@ -42,17 +42,13 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.INTEGER,
             allowNull: false
         },
-        username: {
+        email: {
             type: DataTypes.STRING,
             allowNull: false,
         },
         expires: {
             type: DataTypes.DATE,
             allowNull: false,
-        },
-        updatedBy: {
-            type: DataTypes.STRING,
-            defaultValue: '',
         },
     }, {
         sequelize,

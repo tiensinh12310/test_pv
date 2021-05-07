@@ -40,14 +40,14 @@ module.exports = (sequelize, DataTypes) => {
             return user;
         }
 
-        static checkDuplicateUserName(error) {
-            if (error.name === 'SequelizeUniqueConstraintError' && error.fields['Users.userName']) {
+        static checkDuplicateEmail(error) {
+            if (error.name === 'SequelizeUniqueConstraintError' && error.fields['Users.email']) {
                 return new APIError({
                     message: 'Validation Error',
                     errors: [{
-                        field: 'username',
+                        field: 'email',
                         location: 'body',
-                        messages: ['"username" already exists'],
+                        messages: ['"email" already exists'],
                     }],
                     status: httpStatus.CONFLICT,
                     isPublic: true,
@@ -60,6 +60,17 @@ module.exports = (sequelize, DataTypes) => {
         static async createUser(data) {
             const t = await sequelize.transaction();
             const { email, username, password, fullname, avatar, deleted } = data
+
+            const isExist = await this.findOne({
+                where: { email }
+            })
+
+            if(isExist) {
+                throw new APIError({
+                    status: httpStatus.BAD_REQUEST,
+                    message: 'email is exist',
+                });
+            }
 
             const insertData = {
                 email,
@@ -118,6 +129,10 @@ module.exports = (sequelize, DataTypes) => {
             return jwt.encode(playload, jwtSecret);
         }
 
+        async passwordMatches(password) {
+            return bcrypt.compare(password, this.password);
+        }
+
         static async list(data) {
             const { page, size, isPagination, username, status } = data;
             const pageNumber = Number(page);
@@ -168,6 +183,38 @@ module.exports = (sequelize, DataTypes) => {
                 totalPages: Math.ceil(totalRecords / pageSize),
             }
         }
+
+        static async findAndGenerateToken(data) {
+            const { email, token } = data;
+
+            const user = await this.findOne({
+                where: { email }
+            })
+
+            const err = {
+                status: httpStatus.UNAUTHORIZED,
+                isPublic: true,
+                message: ''
+            }
+
+            if(!user) {
+                err.message = 'Incorrect email'
+            }
+
+            if(token.userId !== user.id || moment(token.expires).isBefore()) {
+                err.message = 'Invalid refresh token';
+            }
+
+            if(err.message) {
+                throw new APIError(err);
+            }
+
+            return {
+                user: user.transform(),
+                accessToken: user.token()
+            }
+        }
+
 
     }
     User.init({
