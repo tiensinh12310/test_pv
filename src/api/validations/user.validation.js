@@ -7,9 +7,10 @@ module.exports = {
   listUsers: {
     query: {
       page: Joi.number().min(1),
-      perPage: Joi.number().min(1).max(100),
-      name: Joi.string(),
-      email: Joi.string(),
+      size: Joi.number().min(1).max(100),
+      isPagination: Joi.boolean().required(),
+      username: Joi.string().max(128),
+      status: Joi.number().valid([0,1]),
     },
   },
 
@@ -20,31 +21,19 @@ module.exports = {
       username: Joi.string().max(128),
       fullname: Joi.string(),
       avatar: Joi.string(),
-      deleted: Joi.boolean()
+      deleted: Joi.number(),
+      status: Joi.number()
     },
   },
 
   // PUT /v1/users/:userId
-  replaceUser: {
-    body: {
-      email: Joi.string().email().required(),
-      password: Joi.string().min(6).max(128).required(),
-      name: Joi.string().max(128),
-    },
-    params: {
-      userId: Joi.string().regex(/^[a-fA-F0-9]{24}$/).required(),
-    },
-  },
-
-  // PATCH /v1/users/:userId
   updateUser: {
     body: {
-      email: Joi.string().email(),
-      password: Joi.string().min(6).max(128),
-      name: Joi.string().max(128),
-    },
-    params: {
-      userId: Joi.string().regex(/^[a-fA-F0-9]{24}$/).required(),
+      userId: Joi.number().required(),
+      username: Joi.string().max(128),
+      status: Joi.number().valid([0,1]),
+      deleted: Joi.number(),
+      avatar: Joi.string(),
     },
   },
 };

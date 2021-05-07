@@ -23,6 +23,23 @@ module.exports = (sequelize, DataTypes) => {
             User.hasOne(models.RefreshToken);
         }
 
+        static async get(userId) {
+            const user = await this.findOne({
+                where: {
+                    id: userId,
+                }
+            });
+
+            if (!user) {
+                throw new APIError({
+                    status: httpStatus.NO_CONTENT,
+                    message: 'Not found user',
+                });
+            }
+
+            return user;
+        }
+
         static checkDuplicateUserName(error) {
             if (error.name === 'SequelizeUniqueConstraintError' && error.fields['Users.userName']) {
                 return new APIError({
@@ -192,8 +209,8 @@ module.exports = (sequelize, DataTypes) => {
             },
         },
         deleted: {
-            type: DataTypes.BOOLEAN,
-            defaultValue: false,
+            type: DataTypes.INTEGER,
+            defaultValue: 1,
         }
     }, {
         sequelize,

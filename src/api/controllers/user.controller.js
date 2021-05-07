@@ -38,3 +38,26 @@ exports.getList = async (req, res, next) => {
         next(e)
     }
 }
+
+exports.updateUser = async (req, res, next) => {
+    try {
+        const {userId, username, fullname, deleted, status} = req.body
+        const user = await User.get(userId);
+        if(username) {
+            user.username = username
+        }
+        if(fullname) {
+            user.fullname = fullname
+        }
+        if(deleted) {
+            user.deleted = deleted
+        }
+        if(status) {
+            user.status = status
+        }
+        await user.save()
+        res.json(true)
+    } catch (e) {
+        next(e)
+    }
+}

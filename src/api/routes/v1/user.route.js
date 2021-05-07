@@ -5,7 +5,6 @@ const { authorize, ADMIN, LOGGED_USER } = require('../../middlewares/auth');
 const {
     listUsers,
     createUser,
-    replaceUser,
     updateUser,
 } = require('../../validations/user.validation');
 
@@ -39,7 +38,8 @@ router.route('/')
      * @apiError (Forbidden 403)     Forbidden        Only admins can create the data
      */
     .post(validate(createUser), controller.create)
-    .get(controller.getList)
+    .get(validate(listUsers), controller.getList)
+    .put(validate(updateUser), controller.updateUser)
 
 
 module.exports = router;
