@@ -1,6 +1,6 @@
 const httpStatus = require('http-status');
 const { omit } = require('lodash');
-const User = require('../models/user.model');
+const { User } = require('../../config/mysql');
 
 /**
  * Create new user
@@ -8,53 +8,25 @@ const User = require('../models/user.model');
  */
 exports.create = async (req, res, next) => {
     try {
-        const user = new User(req.body);
-        const savedUser = await user.save();
+        const savedUser = await User.createUser(req.body);
         res.status(httpStatus.CREATED);
         res.json(savedUser.transform());
     } catch (error) {
-        next(User.checkDuplicateUsername(error));
+        next(error)
     }
 };
 
-/**
- * Update existing user
- * @public
- */
-exports.update = (req, res, next) => {
-    const ommitRole = req.locals.user.role !== 'admin' ? 'role' : '';
-    const updatedUser = omit(req.body, ommitRole);
-    const user = Object.assign(req.locals.user, updatedUser);
-
-    user.save()
-        .then(savedUser => res.json(savedUser.transform()))
-        .catch(e => next(User.checkDuplicateUsername(e)));
-};
-
-
-/**
- * Get user list
- * @public
- */
-exports.list = async (req, res, next) => {
+exports.getUser = async (req, res, next) => {
     try {
-        const users = await User.list(req.query);
-        const transformedUsers = users.map(user => user.transform());
-        res.json(transformedUsers);
+        const { id } = req.query
+        const user = await User.findOne({
+            where: {
+                id
+            },
+        });
+        res.json(user);
     } catch (error) {
-        next(error);
+        console.log(error)
+        next(error)
     }
-};
-
-
-/**
- * Delete user
- * @public
- */
-exports.remove = (req, res, next) => {
-    const { user } = req.locals;
-
-    user.remove()
-        .then(() => res.status(httpStatus.NO_CONTENT).end())
-        .catch(e => next(e));
 };

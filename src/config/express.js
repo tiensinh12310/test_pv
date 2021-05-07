@@ -42,7 +42,7 @@ app.use(passport.initialize());
 passport.use('jwt', strategies.jwt);
 
 // mount api v1 routes
-app.use('/v1', routes);
+app.use('/api/v1', routes);
 
 // if error is not an instanceOf APIError, convert it
 app.use(error.converter);

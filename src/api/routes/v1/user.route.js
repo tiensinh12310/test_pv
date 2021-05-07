@@ -11,7 +11,7 @@ const {
 
 const router = express.Router();
 
-router
+router.route('/')
     /**
      * @api {post} v1/users Create User
      * @apiDescription Create a new user
@@ -35,7 +35,8 @@ router
      * @apiError (Unauthorized 401)  Unauthorized     Only authenticated users can create the data
      * @apiError (Forbidden 403)     Forbidden        Only admins can create the data
      */
-    .post(authorize(LOGGED_USER), validate(createUser), controller.create);
+    .post(validate(createUser), controller.create)
+    .get(controller.getUser)
 
 
 module.exports = router;

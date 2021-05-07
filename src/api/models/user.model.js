@@ -20,87 +20,7 @@ module.exports = (sequelize, DataTypes) => {
          */
         static associate(models) {
             // define association here
-        }
-
-        static async findByIdOrAccountName({ id = null, accountName = '' }) {
-            const account = await Account.findOne({
-                where: {
-                    [Op.or]: [
-                        { id },
-                        { accountName },
-                    ],
-                },
-            });
-
-            if (!account) {
-                throw new APIError({
-                    status: httpStatus.NO_CONTENT,
-                    message: 'Not found account',
-                });
-            }
-
-            return account;
-        }
-
-        static async get(accountId) {
-            const account = await Account.findOne({
-                where: {
-                    id: accountId,
-                },
-                include: [
-                    { association: 'permissions', attributes: ['permission'] },
-                ],
-            });
-
-            if (!account) {
-                throw new APIError({
-                    status: httpStatus.NO_CONTENT,
-                    message: 'Not found account',
-                });
-            }
-
-            return account;
-        }
-
-
-        static async findAndGenerateToken(options) {
-            const { accountName, password, refreshObject } = options;
-
-            if (!accountName) throw new APIError({ message: 'Account name is required to generate a token' });
-
-            const account = await this.findOne({
-                where: {
-                    accountName,
-                },
-            });
-
-            const err = {
-                status: httpStatus.UNAUTHORIZED,
-                isPublic: true,
-            };
-
-            if (password) {
-                if (account && await account.passwordMatches(password)) {
-                    account.OTPVerified = false;
-                    await account.save();
-                    return { user: account.transform(), accessToken: account.token() };
-                }
-                err.message = 'Incorrect account name or password';
-            } else if (refreshObject && refreshObject.accountName === accountName) {
-                if (moment(refreshObject.expires).isBefore()) {
-                    err.message = 'Invalid refresh token';
-                } else {
-                    return { user: account.transform(), accessToken: account.token() };
-                }
-            } else {
-                err.message = 'Incorrect account name or refresh token';
-            }
-
-            // reset otp verified state
-            account.OTPVerified = false;
-            await account.save();
-
-            throw new APIError(err);
+            User.hasOne(models.RefreshToken);
         }
 
         static checkDuplicateUserName(error) {
@@ -108,9 +28,9 @@ module.exports = (sequelize, DataTypes) => {
                 return new APIError({
                     message: 'Validation Error',
                     errors: [{
-                        field: 'accountName',
+                        field: 'username',
                         location: 'body',
-                        messages: ['"accountName" already exists'],
+                        messages: ['"username" already exists'],
                     }],
                     status: httpStatus.CONFLICT,
                     isPublic: true,
@@ -120,14 +40,17 @@ module.exports = (sequelize, DataTypes) => {
             return error;
         }
 
-        static async createUser({email, username, fullname, avatar}, loginUser) {
+        static async createUser(data) {
             const t = await sequelize.transaction();
+            const { email, username, password, fullname, avatar, deleted } = data
 
             const insertData = {
                 email,
                 username,
                 fullname,
+                password,
                 avatar,
+                deleted,
             };
 
             insertData.status = 1;
@@ -135,8 +58,7 @@ module.exports = (sequelize, DataTypes) => {
             try {
                 // Insert to User table
                 const createdUser = await User.create({
-                    ...insertData,
-                    updatedBy: loginUser.username,
+                    ...insertData
                 }, {
                     transaction: t,
                 });
@@ -217,6 +139,10 @@ module.exports = (sequelize, DataTypes) => {
                 this.setDataValue('password', bcrypt.hashSync(val, 10));
             },
         },
+        deleted: {
+            type: DataTypes.BOOLEAN,
+            defaultValue: false,
+        }
     }, {
         sequelize,
         modelName: 'User',

@@ -27,9 +27,18 @@ const sequelize = new Sequelize(mysqlUri, {
 });
 const baseDir = path.join(__dirname, '../api/models');
 
+(async () => {
+    try {
+        await sequelize.authenticate();
+        console.log('info: connected mysql');
+    } catch (e) {
+        console.log('error:mysql', e);
+    }
+})();
+
 fs
     .readdirSync(baseDir)
-    .filter(file => (file.indexOf('.') !== 0) && (file.slice(-3) === '.js') && (file.indexOf('.model') === -1))
+    .filter(file => (file.indexOf('.') !== 0) && (file.slice(-3) === '.js') && (file.indexOf('.model') !== -1))
     .forEach((file, index) => {
         const model = require(path.join(baseDir, file))(sequelize, Sequelize.DataTypes);
         db[model.name] = model;
