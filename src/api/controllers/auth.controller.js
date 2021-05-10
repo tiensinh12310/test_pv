@@ -75,12 +75,20 @@ exports.refresh = async (req, res, next) => {
     try {
         const { email, refresh_token } = req.body;
         const refreshObject = await RefreshToken.findOne({
-            email,
-            token: refresh_token,
+            where: {
+                email,
+                token: refresh_token,
+            },
+            raw: true
         });
-        await refreshObject.destroy()
+        if(!refreshObject) {
+            throw new APIError({
+                status: httpStatus.UNAUTHORIZED,
+                message: 'Invalid token',
+            });
+        }
         const { user, accessToken } = await User.findAndGenerateToken({ email, refreshObject });
-        const response = generateTokenResponse(user, accessToken);
+        const response = await generateTokenResponse(user, accessToken);
         return res.json(response);
     } catch (error) {
         return next(error);

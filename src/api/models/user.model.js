@@ -104,6 +104,7 @@ module.exports = (sequelize, DataTypes) => {
             const transformed = {};
             const fields = [
                 'id',
+                'email',
                 'username',
                 'avatar',
                 'fullName',
@@ -185,7 +186,7 @@ module.exports = (sequelize, DataTypes) => {
         }
 
         static async findAndGenerateToken(data) {
-            const { email, token } = data;
+            const { email, refreshObject } = data;
 
             const user = await this.findOne({
                 where: { email }
@@ -201,7 +202,7 @@ module.exports = (sequelize, DataTypes) => {
                 err.message = 'Incorrect email'
             }
 
-            if(token.userId !== user.id || moment(token.expires).isBefore()) {
+            if(refreshObject.email !== user.email || moment(refreshObject.expires).isBefore()) {
                 err.message = 'Invalid refresh token';
             }
 

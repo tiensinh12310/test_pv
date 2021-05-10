@@ -7,7 +7,6 @@ const OPEN = 1;
 
 const handleJWT = (req, res, next, status) => async (err, user, info) => {
     const error = err || info;
-    console.log(err, '=========', req)
     const logIn = Promise.promisify(req.logIn);
     const apiError = new APIError({
         message: error ? error.message : 'Unauthorized',
@@ -28,10 +27,6 @@ const handleJWT = (req, res, next, status) => async (err, user, info) => {
             apiError.message = 'Forbidden';
             return next(apiError);
         }
-    } else if (!status.includes(user.status)) {
-        apiError.status = httpStatus.FORBIDDEN;
-        apiError.message = 'Forbidden';
-        return next(apiError);
     } else if (err || !user) {
         return next(apiError);
     }
