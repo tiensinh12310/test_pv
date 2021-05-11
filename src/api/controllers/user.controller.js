@@ -18,13 +18,7 @@ exports.create = async (req, res, next) => {
 
 exports.getUser = async (req, res, next) => {
     try {
-        const { id } = req.query
-        const user = await User.findOne({
-            where: {
-                id
-            },
-        });
-        res.json(user);
+        res.json(req.user)
     } catch (error) {
         next(error)
     }
@@ -43,14 +37,12 @@ exports.updateUser = async (req, res, next) => {
     try {
         const {userId, username, fullname, deleted, status} = req.body
         const user = await User.getUserById(userId);
+        user.deleted = deleted
         if(username) {
             user.username = username
         }
         if(fullname) {
             user.fullname = fullname
-        }
-        if(deleted) {
-            user.deleted = deleted
         }
         if(status) {
             user.status = status
@@ -58,6 +50,15 @@ exports.updateUser = async (req, res, next) => {
         await user.save()
         res.json(true)
     } catch (e) {
+        next(e)
+    }
+}
+
+exports.validateEmail = async (req, res, next) => {
+    try {
+        const data = await User.getUserByEmail(req.body)
+        res.json(data)
+    } catch(e) {
         next(e)
     }
 }

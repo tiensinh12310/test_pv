@@ -50,6 +50,14 @@ exports.login = async (req, res, next) => {
     }
 };
 
+exports.logout = async (req, res, next) => {
+    try {
+        return res.json(true);
+    } catch (error) {
+        return next(error);
+    }
+};
+
 /**
  * login with an existing user or creates a new one if valid accessToken token
  * Returns jwt token

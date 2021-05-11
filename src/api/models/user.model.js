@@ -37,6 +37,27 @@ module.exports = (sequelize, DataTypes) => {
                 });
             }
 
+            delete user.password
+
+            return user;
+        }
+
+        static async getUserByEmail({email}) {
+            const user = await this.findOne({
+                where: {
+                    email
+                }
+            });
+
+            if (!user) {
+                throw new APIError({
+                    status: httpStatus.BAD_REQUEST,
+                    message: 'Not found user',
+                });
+            }
+
+            delete user.password
+
             return user;
         }
 
@@ -72,14 +93,17 @@ module.exports = (sequelize, DataTypes) => {
                 });
             }
 
+
+
             const insertData = {
                 email,
-                username,
+                username: username ? username : email,
                 fullname,
                 password,
                 avatar,
                 deleted,
             };
+
 
             insertData.status = 1;
 
@@ -130,7 +154,7 @@ module.exports = (sequelize, DataTypes) => {
             return jwt.encode(playload, jwtSecret);
         }
 
-        async passwordMatches(password) {
+        passwordMatches(password) {
             return bcrypt.compare(password, this.password);
         }
 
@@ -139,7 +163,7 @@ module.exports = (sequelize, DataTypes) => {
             const pageNumber = Number(page);
             const pageSize = Number(size);
 
-            const offset = (pageNumber - 1) * pageSize;
+            const offset = pageNumber === 0 ? 0 : pageNumber * pageSize;
             const limit = pageSize;
 
             const condition = {}
@@ -153,7 +177,7 @@ module.exports = (sequelize, DataTypes) => {
 
             // option: order, pagination
             const options = {};
-            options.order = [['username', 'ASC'], ['status', 'ASC']];
+            options.order = [['email', 'ASC'], ['status', 'ASC']];
 
             if(isPagination) {
                 options.offset = offset;
@@ -161,6 +185,8 @@ module.exports = (sequelize, DataTypes) => {
             }
 
             const attributes = [
+                'id',
+                'email',
                 'username',
                 'fullname',
                 'status',
@@ -186,7 +212,7 @@ module.exports = (sequelize, DataTypes) => {
         }
 
         static async findAndGenerateToken(data) {
-            const { email, refreshObject } = data;
+            const { email, refreshObject, password } = data;
 
             const user = await this.findOne({
                 where: { email }
@@ -202,7 +228,13 @@ module.exports = (sequelize, DataTypes) => {
                 err.message = 'Incorrect email'
             }
 
-            if(refreshObject.email !== user.email || moment(refreshObject.expires).isBefore()) {
+            if(password && await user.passwordMatches(password)) {
+                return { user: user.transform(), accessToken: user.token() };
+            }
+            err.message = 'Incorrect email or password';
+
+
+            if(refreshObject && (refreshObject.email !== user.email || moment(refreshObject.expires).isBefore())) {
                 err.message = 'Invalid refresh token';
             }
 
@@ -215,20 +247,17 @@ module.exports = (sequelize, DataTypes) => {
                 accessToken: user.token()
             }
         }
-
-
     }
     User.init({
         email: {
             type: DataTypes.STRING,
             allowNull: false,
+            set(val) {
+                this.setDataValue('email', val.toLowerCase().trim());
+            },
         },
         username: {
             type: DataTypes.STRING,
-            allowNull: false,
-            set(val) {
-                this.setDataValue('username', val.toLowerCase().trim());
-            },
         },
         fullname: {
             type: DataTypes.STRING,
@@ -239,10 +268,10 @@ module.exports = (sequelize, DataTypes) => {
             defaultValue: '',
         },
         status: {
-            type: DataTypes.INTEGER.UNSIGNED,
+            type: DataTypes.INTEGER,
             allowNull: false,
             validate: {
-                isIn: [[0, 1]], // deleted, active
+                isIn: [[1, 2]], // open, close
             },
             defaultValue: 1,
         },
@@ -257,8 +286,8 @@ module.exports = (sequelize, DataTypes) => {
             },
         },
         deleted: {
-            type: DataTypes.INTEGER,
-            defaultValue: 1,
+            type: DataTypes.BOOLEAN,
+            defaultValue: false,
         }
     }, {
         sequelize,

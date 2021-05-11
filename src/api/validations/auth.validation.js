@@ -12,7 +12,7 @@ module.exports = {
     // POST /v1/auth/login
     login: {
         body: {
-            username: Joi.string().required(),
+            email: Joi.string().email().required(),
             password: Joi.string().required().max(128),
         },
     },
